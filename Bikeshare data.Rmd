@@ -1,0 +1,172 @@
+---
+title: "Bike Data"
+author: "Abdulwahab Yisau"
+date: "2022-08-12"
+output: html_document
+---
+
+## Overview
+This is an R Markdown document that explains all the steps taken to analyze, clean and visualize a company's bike share data with the goal to convert a number of casual riders to annual members in order to improve the profitability of the business. 
+
+### Prior Steps taken before analyzing on R Studio
+A larger dataset was pre-cleaned and sorted using SQL before importing into R Studio for further analysis. This was done in order to filter our irrelevant data for easier analysis on R Studio.  
+
+### Installing all necessary packages
+```{r}
+install.packages("tidyverse")
+install.packages("lubridate")
+install.packages("ggplot2")
+```
+
+### Loading packages
+```{r}
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(readr)
+```
+
+
+
+### Aliasing dataframes
+```{r}
+X2021_06 <- read_csv("2021_06_sum.csv")
+X2021_07 <- read_csv("2021_07_sum.csv")
+X2021_08 <- read_csv("2021_08_sum.csv")
+X2021_09 <- read_csv("2021_09_sum.csv")
+X2021_10 <- read_csv("2021_10_sum.csv")
+X2021_11 <- read_csv("2021_11_sum.csv")
+X2021_12 <- read_csv("2021_12_sum.csv")
+X2022_01 <- read_csv("2022_01_sum.csv")
+X2022_02 <- read_csv("2022_02_sum.csv")
+X2022_03 <- read_csv("2022_03_sum.csv")
+X2022_04 <- read_csv("2022_04_sum.csv")
+X2022_05 <- read_csv("2022_05_sum.csv")
+X2022_06 <- read_csv("2022_06_sum.csv")
+```
+
+### Combining all dataframe into a single dataframe(all_trips)
+```{r}
+all_trips <- bind_rows(X2021_06, X2021_07, X2021_08, 
+                       X2021_09, X2021_10, X2021_11, 
+                       X2021_12, X2022_01, X2022_01, 
+                       X2022_02, X2022_03, X2022_04, 
+                       X2022_05, X2022_06)
+```
+
+### Checking out the new dataframe(all_trips)
+```{r}
+str(all_trips)
+
+```
+
+### Creating a new dataframe(all_tripsv2) to be visualized
+```{r}
+all_tripsv2 <- all_trips %>% 
+  group_by(rideable_type, 
+           member_casual, 
+           day_of_week) %>% 
+  summarize(num_of_rides = sum(num_of_rides), 
+            Avg_min_per_rides = mean(Avg_min_per_rides))
+```
+
+### Checking out the new dataframe(all_tripsv2)
+```{r}
+str(all_tripsv2)
+
+```
+
+### Renaming the column names of the the new dataframe(all_tripsv2)
+```{r}
+all_tripsv2 <- rename(all_tripsv2, 
+                      bike_type = rideable_type, 
+                      membership = member_casual, 
+                      total_rides = num_of_rides)
+```
+
+### Checking out the new column names
+```{r}
+colnames(all_tripsv2)
+```
+
+### Filtering out irrelevant datasets and assigning to a new dataframe(all_tripsv3)
+```{r}
+all_tripsv3 <- subset(all_tripsv2, bike_type != "docked_bike")
+```
+
+### Re-Ordering data
+```{r}
+all_tripsv2$day_of_week <- ordered(all_tripsv2$day_of_week, levels=c(
+  "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
+
+all_tripsv3$day_of_week <- ordered(all_tripsv3$day_of_week, levels=c(
+  "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
+```
+
+### Visualization 1: Average minutes per ride for each type of bikes for each membership type
+```{r}
+ggplot(data=all_tripsv2) +
+  geom_point(mapping=aes(x = day_of_week, 
+                         y = Avg_min_per_rides,
+                         color = membership, 
+                         shape = bike_type,
+                         size = Avg_min_per_rides))+
+  labs(title = "Classic Bike Vs Electric Bike Vs Docked Bikes", 
+       caption= "Data: June 2021 - June 2022", 
+       x= "Day of Week", 
+       y= "Average Minutes per Ride")
+```
+
+### Visualization 2: Total number of rides per bike type for each membership type
+```{r}
+all_tripsv2 %>% 
+  ggplot(mapping=aes(x =bike_type, y = total_rides, fill = membership)) +
+  geom_col(position = "dodge") + 
+  labs(title = "Classic Bike Vs Electric Bike Vs Docked Bikes", 
+       caption= "Data: June 2021 - June 2022", 
+       x= "Bike Type", 
+       y= "Total Number Of Rides")
+```
+
+### Visualization 3: Electric Bikes Vs Classic Bikes (Average minutes per ride)
+```{r}
+ggplot(data=all_tripsv3) +
+  geom_point(mapping=aes(x = day_of_week, 
+                         y = Avg_min_per_rides,
+                         color = membership, 
+                         shape = bike_type,
+                         size = Avg_min_per_rides))+
+  labs(title = "Classic Bike Vs Electric Bike", 
+       caption= "Data: June 2021 - June 2022", 
+       x= "Day of Week", 
+       y= "Average Minutes per Ride")
+
+```
+
+### Visualization 4: Average minutes per ride per day for each membership type
+```{r}
+all_tripsv3 %>% 
+  ggplot(mapping=aes(x =day_of_week, y = Avg_min_per_rides, fill = membership)) +
+  geom_col(position = "dodge") + 
+  labs(title = "Average Minutes per Ride per Day", 
+        caption= "Data: June 2021 - June 2022", 
+        x= "Days Of Week", 
+        y= "Average Minutes per Ride")
+```
+
+### Saving Visualization to working directory
+```{r}
+ggsave("Bike Data Viz 6.png", width=10, height=5)
+```
+
+### Saving dataframes as CSV file
+```{r}
+write.csv(all_tripsv2,
+          file = "Bike data viz.csv",
+          row.names = FALSE)
+```
+
+
+
+
+
